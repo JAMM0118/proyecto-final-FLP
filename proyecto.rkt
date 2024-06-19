@@ -77,9 +77,9 @@
     (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
     (expresion ("set" identificador "=" expresion) set-exp)
 
-    ; ; ;;Funciones
-    ; (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
-    ; (expresion ("call" expresion "(" (separated-list expresion ",") ")") call-exp)
+    ;;Funciones
+    (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
+    (expresion ("call" expresion "(" (separated-list expresion ",") ")") call-exp)
 
     ; ; ;;Instanciación y uso de estructuras
     ; (expresion ("new" identificador "(" (separated-list expresion ",") ")") new-struct-exp)
@@ -206,7 +206,7 @@
 
 (define expval?
   (lambda (x)
-    (or (number? x) (boolean? x) (string? x) (vector? x) (symbol? x) (list? x))))
+    (or (number? x) (boolean? x) (string? x) (vector? x) (symbol? x) (list? x) (procedure? x))))
 
 (define-datatype target target?
   (direct-target (expval expval?))
@@ -242,6 +242,10 @@
       (while-exp (condicion cuerpo) (apply-while-exp condicion cuerpo env))
       (switch-exp (item cases caseValues defaultValue) (eval-switch-exp item  (map (lambda (caseKey) (eval-expresion caseKey env)) cases)
       (map (lambda (caseValue) (eval-expresion caseValue env)) caseValues) (eval-expresion defaultValue env) env))
+      
+      (func-exp (ids body) (lambda (args) (eval-expresion body (extend-env ids args env))))
+      (call-exp (exp exps) (apply (eval-expresion exp env) (list (map (lambda (arg) (eval-expresion arg env)) exps))))
+      
       )
     ))
 
@@ -305,7 +309,6 @@
       )
     )
   )
-
 
 (define aplicar-primitiva-listas
   (lambda (prim exp)
