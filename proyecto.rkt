@@ -2,40 +2,40 @@
 (require racket/vector)
 
 (define lexica
-'((white-sp
-   (whitespace) skip)
-  (comment
-   ("//" (arbno (not #\newline))) skip)
-  (identificador
-   (letter (arbno (or letter digit "?"))) symbol)
-  (digitoBinario
-   ("b" (or "0" "1") (arbno (or "0" "1"))) string)
-  (digitoBinario
-   ("-" "b" (or "0" "1") (arbno (or "0" "1"))) string)
-   (digitoDecimal
-    (digit (arbno digit)) number)
-  (digitoDecimal
-   ("-" digit (arbno digit)) number)
-  (digitoOctal
-   ("0x" (or "0" "1" "2" "3" "4" "5" "6" "7")(arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
-  (digitoOctal
-   ("-" "0x" (or "0" "1" "2" "3" "4" "5" "6" "7") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
-  (digitoHexadecimal
-   ("hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
-  (digitoHexadecimal
-   ("-" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string) 
-  (flotante
-   (digit (arbno digit) "." digit (arbno digit)) number)
-  (flotante
-   ("-" digit (arbno digit) "." digit (arbno digit)) number)
-  ))
+  '((white-sp
+     (whitespace) skip)
+    (comment
+     ("//" (arbno (not #\newline))) skip)
+    (identificador
+     (letter (arbno (or letter digit "?"))) symbol)
+    (digitoBinario
+     ("b" (or "0" "1") (arbno (or "0" "1"))) string)
+    (digitoBinario
+     ("-" "b" (or "0" "1") (arbno (or "0" "1"))) string)
+    (digitoDecimal
+     (digit (arbno digit)) number)
+    (digitoDecimal
+     ("-" digit (arbno digit)) number)
+    (digitoOctal
+     ("0x" (or "0" "1" "2" "3" "4" "5" "6" "7")(arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
+    (digitoOctal
+     ("-" "0x" (or "0" "1" "2" "3" "4" "5" "6" "7") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7"))) string)
+    (digitoHexadecimal
+     ("hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
+    (digitoHexadecimal
+     ("-" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
+    (flotante
+     (digit (arbno digit) "." digit (arbno digit)) number)
+    (flotante
+     ("-" digit (arbno digit) "." digit (arbno digit)) number)
+    ))
 
 (define gramatica
   '(
     (programa ((arbno struct-decl) expresion) a-programa)
     (expresion (bool-expresion) bool-exp)
     (expresion (identificador) var-exp)
-    (expresion (numero-exp) num-exp)    
+    (expresion (numero-exp) num-exp)
     (expresion ("\"" identificador (arbno identificador) "\"") cadena-exp)
     (expresion (var-decl) decl-exp)
 
@@ -46,38 +46,36 @@
     (expresion ("array" "(" (separated-list expresion ",") ")") array-exp)
 
     ;;Expresion primitivas
-    
+
     ;;Primitiva numerica
     (expresion ("(" expresion primitiva expresion ")") prim-num-exp)
-    (expresion (primitiva "(" (separated-list expresion ",")")") primPre-num-exp)
 
     ;;Primitiva booleana
     (expresion (primitivaBooleana "(" (separated-list expresion ",") ")") prim-bool-exp)
 
     ;;Primitiva listas
     (expresion (primitivaListas "(" expresion ")") prim-list-exp)
-    
+
     ;;Primitiva array
     (expresion (primitivaArray "(" (separated-list expresion ",") ")") prim-array-exp)
-    
+
     ;;Primitiva de cadenas
     (expresion (primitivaCadena "(" (separated-list expresion ",") ")") prim-cad-exp)
 
 
-    ; ; ;;Condicionales
-    ; (expresion ("if" expresion "{" expresion "else" expresion "}") if-exp)
+    ;;Condicionales
+    (expresion ("if" expresion "{" expresion "else" expresion "}") if-exp)
 
+    ;;Iteradores
+    ;(expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
+    (expresion ("while" expresion "{" expresion "}") while-exp)
 
-    ; ; ;;Iteradores
-    ; (expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
-    ; (expresion ("while" expresion "{" expresion "}") while-exp)
+    ;;Switch
+    (expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
 
-    ; ; ;;Switch
-    ; (expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
-
-    ; ; ;;Secuenciación y asignación
-    ; (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
-    ; (expresion ("set" identificador "=" expresion) set-exp)
+    ;;Secuenciación y asignación
+    (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
+    (expresion ("set" identificador "=" expresion) set-exp)
 
     ; ; ;;Funciones
     ; (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
@@ -97,7 +95,7 @@
     (numero-exp (digitoBinario) bin-num)
     (numero-exp (digitoHexadecimal) hex-num)
     (numero-exp (flotante) float-num)
-    
+
     ;;Bool-exp
     (bool-expresion ("true") true-exp)
     (bool-expresion ("false") false-exp)
@@ -137,11 +135,11 @@
     (primitivaCadena ("concat") concat-primCad)
     (primitivaCadena ("string-length") length-primCad)
     (primitivaCadena ("elementAt") index-primCad)
-    
+
     ; ;;Variables
     (var-decl ("var" (arbno identificador "=" expresion) "in" expresion) lvar-exp)
     (var-decl ("let" (arbno identificador "=" expresion) "in" expresion) let-exp)
-    
+
     ; ;;Estructuras de datos
     (struct-decl ("struct" identificador "{" (arbno identificador) "}") struct-exp)
 
@@ -158,13 +156,6 @@
 
 (sllgen:make-define-datatypes lexica gramatica)
 
-(define empty-env  
-  (lambda ()
-    (empty-env-record)))
-    
-(define extend-env
-  (lambda (syms vals env)
-    (extended-env-record syms vals env)))
 
 (define show-the-datatypes
   (lambda () (sllgen:list-define-datatypes lexica gramatica)))
@@ -179,36 +170,129 @@
 (define scan&parse
   (sllgen:make-string-parser lexica gramatica))
 
-(define eval-program 
+
+(define eval-program
   (lambda (pgm)
     (cases programa pgm
       (a-programa (struct-decl  exp) (eval-expresion exp ambiente-inicial)
+                  )
       )
     )
   )
-)
+
+;El Interpretador (FrontEnd + Evaluación + señal para lectura +
+(define interpretador
+  (sllgen:make-rep-loop "my-language: --> "
+                        eval-program(sllgen:make-stream-parser
+                                     lexica
+                                     gramatica)))
+
+(define-datatype environment environment?
+  (empty-env-record)
+  (extended-env-record
+   (syms (list-of symbol?))
+   (vec vector?)
+   (env environment?)))
+
+(define empty-env
+  (lambda ()
+    (empty-env-record)))
+
+(define extend-env
+  (lambda (syms vals env)
+    (extended-env-record syms (list->vector vals) env)))
+
+
+(define expval?
+  (lambda (x)
+    (or (number? x) (boolean? x) (string? x) (vector? x) (symbol? x) (list? x))))
+
+(define-datatype target target?
+  (direct-target (expval expval?))
+  (indirect-target (ref ref-to-direct-target?)))
+
+(define ambiente-inicial (empty-env))
+
+(define-datatype reference reference?
+  (a-ref (position integer?)
+         (vec vector?)))
+
 
 (define eval-expresion
-(lambda (exp env)
- (cases expresion exp
-    (num-exp (numero) (eval-numero-exp numero))
-    (var-exp (id) (apply-env env id))
-    (bool-exp (bool) (eval-bool-exp bool))
-    (prim-num-exp (exp1 prim exp2) (aplicar-primitiva prim (eval-expresion exp1 env) (eval-expresion exp2 env)))
-    (primPre-num-exp (prim exps) (aplicar-primitiva-pre prim (map (lambda (id) (eval-expresion id env)) exps)))
-    (prim-bool-exp (prim exps) (aplicar-primitiva-bool prim (map (lambda (id) (eval-expresion id env)) exps)))
-    (cadena-exp (text ltexts) (cadena-expression (symbol->string text) (map (lambda (lt) (symbol->string lt)) ltexts)))
-    (prim-cad-exp (prim exps) (aplicar-primitiva-cadena prim (map (lambda (str) (eval-expresion str env)) exps)))
-    (decl-exp (decl) (eval-decl-exp decl env))
-    (lista-exp (exps) (map (lambda (item) (eval-expresion item env)) exps))
-    (prim-list-exp (prim exp) (aplicar-primitiva-listas prim (eval-expresion exp env)))
-    (empty-list-exp () '())
-    (cons-exp (exp1 exp2) (cons (eval-expresion exp1 env)(eval-expresion exp2 env)))
-    (array-exp (exps) (list->vector (map (lambda (item) (eval-expresion item env)) exps)))
-    (prim-array-exp (prim exps) (aplicar-primitiva-array prim (map (lambda (item) (eval-expresion item env)) exps)))
-  )
- ))
+  (lambda (exp env)
+    (cases expresion exp
+      (num-exp (numero) (eval-numero-exp numero))
+      (var-exp (id) (apply-env env id))
+      (bool-exp (bool) (eval-bool-exp bool))
+      (prim-num-exp (exp1 prim exp2) (aplicar-primitiva prim (eval-expresion exp1 env) (eval-expresion exp2 env)))
+      (prim-bool-exp (prim exps) (aplicar-primitiva-bool prim (map (lambda (id) (eval-expresion id env)) exps)))
+      (cadena-exp (text ltexts) (cadena-expression (symbol->string text) (map (lambda (lt) (symbol->string lt)) ltexts)))
+      (prim-cad-exp (prim exps) (aplicar-primitiva-cadena prim (map (lambda (str) (eval-expresion str env)) exps)))
+      (decl-exp (decl) (eval-decl-exp decl env))
+      (lista-exp (exps) (map (lambda (item) (eval-expresion item env)) exps))
+      (prim-list-exp (prim exp) (aplicar-primitiva-listas prim (eval-expresion exp env)))
+      (empty-list-exp () '())
+      (cons-exp (exp1 exp2) (cons (eval-expresion exp1 env)(eval-expresion exp2 env)))
+      (array-exp (exps) (list->vector (map (lambda (item) (eval-expresion item env)) exps)))
+      (prim-array-exp (prim exps) (aplicar-primitiva-array prim (map (lambda (item) (eval-expresion item env)) exps)))
+      (if-exp (condicion then elses) (if (eval-expresion condicion env) (eval-expresion then env) (eval-expresion elses env)))
+      (set-exp (id rhs-exp) (begin (setref! (apply-env-ref env id) (eval-expresion rhs-exp env)) ))
+      (begin-exp (exp exps) (let loop ((acc (eval-expresion exp env)) (exps exps)) (if (null? exps) acc (loop (eval-expresion (car exps) env) (cdr exps)))))
+      (while-exp (condicion cuerpo) (apply-while-exp condicion cuerpo env))
+      (switch-exp (item cases caseValues defaultValue) (eval-switch-exp item  (map (lambda (caseKey) (eval-expresion caseKey env)) cases)
+      (map (lambda (caseValue) (eval-expresion caseValue env)) caseValues) (eval-expresion defaultValue env) env))
+      )
+    ))
 
+(define eval-switch-exp
+  (lambda (item cases caseValues defaultValue env)
+    (cond
+      [(or (null? cases) (null? caseValues) ) defaultValue] 
+      [(eqv? (eval-expresion item env) (car cases)) (car caseValues)]
+      [else (eval-switch-exp item (cdr cases) (cdr caseValues) defaultValue env)]
+      )
+    )
+  )
+
+(define apply-while-exp (
+  lambda (condicion cuerpo env)
+  (cond
+      [(eqv? (eval-expresion condicion env) #t)
+      (eval-expresion cuerpo env) (apply-while-exp condicion cuerpo env)]
+      [else #f]
+      )
+  )
+)
+(define apply-env-ref
+  (lambda (env sym)
+    (cases environment env
+      (empty-env-record ()
+                        (eopl:error 'apply-env-ref "No binding for ~s" sym))
+      (extended-env-record (syms vals env)
+                           (let ((pos (rib-find-position sym syms)))
+                             (if (number? pos)
+                                 (a-ref pos vals)
+                                 (apply-env-ref env sym)))))))
+
+(define primitive-deref
+  (lambda (ref)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-ref vec pos)))))
+
+(define setref!
+  (lambda (ref expval)
+    (let
+        ((ref (cases target (primitive-deref ref)
+                (direct-target (expval1) ref)
+                (indirect-target (ref1) ref1))))
+      (primitive-setref! ref (direct-target expval)))))
+
+(define primitive-setref!
+  (lambda (ref val)
+    (cases reference ref
+      (a-ref (pos vec)
+             (vector-set! vec pos val)))))
 
 (define aplicar-primitiva-array
   (lambda (prim exps)
@@ -217,9 +301,9 @@
       (index-primArr () (vector-ref (car exps) (cadr exps)))
       (slice-primArr () (vector-copy (car exps) (cadr exps) (caddr exps)))
       (setlist-primArr () (vector-set! (car exps) (cadr exps) (caddr exps)) (car exps))
+      )
     )
   )
-)
 
 
 (define aplicar-primitiva-listas
@@ -233,68 +317,50 @@
 (define eval-decl-exp
   (lambda (decl env)
     (cases var-decl decl
-      (let-exp (lid lexp exp)
-        (let
-          (
-           (lexp (map (lambda (x) (eval-expresion x env)) lexp))
-          )
-          (eval-expresion
-            exp
-            (extend-env lid lexp env)
-          )
-        )
-      )
-      (lvar-exp (lid lexp exp)
-        (let
-          (
-           (lexp (map (lambda (x) (eval-expresion x env)) lexp))
-          )
-          (eval-expresion
-            exp
-            (extend-env lid lexp env)
-          )
-        )
+    
+      (let-exp (ids rands body)
+               (let ((args (eval-let-exp-rands rands env)))
+                 (eval-expresion body (extend-env ids args env))))
+      (lvar-exp (ids rands body)
+                (let ((args (eval-let-exp-rands rands env)))
+                  (eval-expresion body (extend-env ids args env))))
       )
     )
   )
-)
 (define cadena-expression
   (lambda (text ltexts)
     (string-append text (apply string-append (map (lambda (lt) (string-append " " lt)) ltexts)))
+    )
   )
-)
 
 
 (define aplicar-primitiva-cadena
-(lambda (prim exps)
-  (cases primitivaCadena prim
-    (concat-primCad () (apply string-append exps))
-    (length-primCad () (string-length (car exps)))
-    (index-primCad () (string-ref (car exps) (cadr exps)))
-  )
-))
-
-
+  (lambda (prim exps)
+    (cases primitivaCadena prim
+      (concat-primCad () (apply string-append exps))
+      (length-primCad () (string-length (car exps)))
+      (index-primCad () (string (string-ref (car exps) (cadr exps))))
+      )
+    ))
 
 (define aplicar-primitiva-bool
-(lambda (prim exps)
-  (cases primitivaBooleana prim
-    (and-prim () (todos-iguales? exps))
-    (or-prim () (unTrue? exps))
-    (xor-prim () (trueExclusivo? exps 0))
-    (not-prim () (map (lambda (x) (not x)) exps))
-  ))
-)
+  (lambda (prim exps)
+    (cases primitivaBooleana prim
+      (and-prim () (todos-iguales? exps))
+      (or-prim () (unTrue? exps))
+      (xor-prim () (trueExclusivo? exps 0))
+      (not-prim () (map (lambda (x) (not x)) exps))
+      ))
+  )
 
 (define (trueExclusivo? lst acc)
-(cond
+  (cond
     [(null? lst) (if (= acc 1) #t #f)]
     [(> acc 1) #f]
     [(eqv? (car lst) #t) (trueExclusivo? (cdr lst) (+ acc 1))]
     [else (trueExclusivo? (cdr lst) acc)]
     )
-
-)
+  )
 
 (define (unTrue? lst)
   (cond
@@ -312,29 +378,18 @@
            #t ; Llegamos al final sin encontrar diferencias
            (if (eqv? primero (car resto)) (loop primero (cdr resto)) ; Siguiente elemento
                #f)
-          )
-      )
-    ])) ; Encontramos elementos diferentes
-
-(define eval-rands
-  (lambda (rands env)
-    (map (lambda (x) (eval-rand x env)) rands)))
-
-(define eval-rand
-  (lambda (rand env)
-    (eval-expresion rand env)))
-
-
+           )
+       )
+     ])) ; Encontramos elementos diferentes
 
 (define eval-bool-exp
   (lambda (bool)
     (cases bool-expresion bool
       (true-exp () #t)
       (false-exp () #f)
+      )
     )
   )
-)
-
 
 (define eval-numero-exp
   (lambda (num)
@@ -344,100 +399,80 @@
       (bin-num (num) num)
       (hex-num (num) num)
       (float-num (num) num)
-    )
-  ))
-
+      )
+    ))
 
 (define aplicar-primitiva
   (lambda (prim exp1 exp2)
-    (cases primitiva prim 
-    (sum-prim () (+ exp1 exp2))
-    (minus-prim () (- exp1 exp2))
-    (mult-prim () (* exp1 exp2))
-    (div-prim () (/ exp1 exp2))
-    (mayor-prim () (> exp1 exp2))
-    (menor-prim () (< exp1 exp2))
-    (mayorigual-prim () (>= exp1 exp2))
-    (menorigual-prim () (<= exp1 exp2))
-    (igual-prim () (= exp1 exp2))
-    (diferente-prim () (not (= exp1 exp2)))
-    (mod-prim () (modulo exp1 exp2))
-    (elevar-prim () (expt exp1 exp2))
-
-    )
-  )
-)
-
-(define aplicar-primitiva-pre
-  (lambda (prim exps)
     (cases primitiva prim
-    (sum-prim () (operar + exps 0))
-    (minus-prim () (operar - exps 0))
-    (mult-prim () (operar * exps 1))
-    (div-prim () (operar / exps 1))
-    (mayor-prim () (> (car exps) (cadr exps)))
-    (menor-prim () (< (car exps) (cadr exps)))
-    (mayorigual-prim () (>= (car exps) (cadr exps)))
-    (menorigual-prim () (<= (car exps) (cadr exps)))
-    (igual-prim () (= (car exps) (cadr exps)))
-    (diferente-prim () (not (= (car exps) (cadr exps))))
-    (mod-prim () (modulo (car exps) (cadr exps)))
-    (elevar-prim () (expt (car exps) (cadr exps)))
-    )
-  )
-)
+      (sum-prim () (+ exp1 exp2))
+      (minus-prim () (- exp1 exp2))
+      (mult-prim () (* exp1 exp2))
+      (div-prim () (/ exp1 exp2))
+      (mayor-prim () (> exp1 exp2))
+      (menor-prim () (< exp1 exp2))
+      (mayorigual-prim () (>= exp1 exp2))
+      (menorigual-prim () (<= exp1 exp2))
+      (igual-prim () (= exp1 exp2))
+      (diferente-prim () (not (= exp1 exp2)))
+      (mod-prim () (modulo exp1 exp2))
+      (elevar-prim () (expt exp1 exp2))
 
-(define operar
-  (lambda  (op lval acc)
-    (cond
-      [(null? lval) acc]
-      [else (operar op (cdr lval) (op acc (car lval)))]
-    )
-  )
-)
-
-(define-datatype environment environment?
-    (empty-env-record)
-    (extended-env-record (lid (list-of symbol?))
-                (lval (list-of value?))
-                (old-env environment?))
-
-)
-
-(define value?
-  (lambda (x) #T)
-)
-(define ambiente-inicial (empty-env))
-
-(define apply-env
-  (lambda (env id)
-    (cases environment env
-        (empty-env-record () (eopl:error "No se encuentra la variable " id))
-        (extended-env-record 
-          (lid lval old-env)
-          (letrec
-            (
-             (apply-env-aux (lambda (lid lval)
-              (cond
-                [(null? lid) (apply-env old-env id)]
-                [(eqv? (car lid) id) (car lval)]
-                [else (apply-env-aux (cdr lid) (cdr lval))]
-                )
-
-             ))
-             )
-            (apply-env-aux lid lval)
-         )
       )
     )
   )
-)
 
-;El Interpretador (FrontEnd + Evaluación + señal para lectura +
-(define interpretador
-  (sllgen:make-rep-loop "my-language: --> "
-    eval-program(sllgen:make-stream-parser 
-      lexica
-      gramatica)))
+(define apply-env
+  (lambda (env sym)
+    (deref (apply-env-ref env sym))
+    )
+  )
+
+(define eval-let-exp-rands
+  (lambda (rands env)
+    (map (lambda (x) (eval-let-exp-rand x env))
+         rands)))
+
+(define eval-let-exp-rand
+  (lambda (rand env)
+    (direct-target (eval-expresion rand env))))
+
+
+(define ref-to-direct-target?
+  (lambda (x)
+    (and (reference? x)
+         (cases reference x
+           (a-ref (pos vec)
+                  (cases target (vector-ref vec pos)
+                    (direct-target (v) #t)
+                    (indirect-target (v) #f)))))))
+
+(define deref
+  (lambda (ref)
+    (cases target (primitive-deref ref)
+      (direct-target (expval) expval)
+      (indirect-target (ref1)
+                       (cases target (primitive-deref ref1)
+                         (direct-target (expval) expval)
+                         (indirect-target (p)
+                                          (eopl:error 'deref
+                                                      "Illegal reference: ~s" ref1)))))))
+(define rib-find-position
+  (lambda (sym los)
+    (list-find-position sym los)))
+
+(define list-find-position
+  (lambda (sym los)
+    (list-index (lambda (sym1) (eqv? sym1 sym)) los)))
+
+(define list-index
+  (lambda (pred ls)
+    (cond
+      ((null? ls) #f)
+      ((pred (car ls)) 0)
+      (else (let ((list-index-r (list-index pred (cdr ls))))
+              (if (number? list-index-r)
+                  (+ list-index-r 1)
+                  #f))))))
 
 (interpretador)
