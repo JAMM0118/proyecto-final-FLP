@@ -1,5 +1,6 @@
 #lang eopl
 (require racket/vector)
+(require "complemento.rkt")
 
 (define lexica
   '((white-sp
@@ -175,8 +176,11 @@
 (define eval-program
   (lambda (pgm)
     (cases programa pgm
-      (a-programa (struct-decl  exp) (eval-expresion exp ambiente-inicial)
-                  )
+      (a-programa (struct-decl  exp) (
+        cond 
+        [(null? struct-decl) (eval-expresion exp ambiente-inicial)]
+        )
+        )
       )
     )
   )
@@ -287,14 +291,10 @@
 
 (define eval-for-exp 
   (lambda (itdor from until by body env)
-
-    (
-      (display (apply-env-ref env itdor ))
-    (display (setref! (apply-env-ref env itdor) 2))
-            (display (apply-env-ref env itdor))
-      
-      ) 
-     
+    (cond 
+      [(<= (eval-expresion (var-exp itdor) env) (eval-expresion until env)) (begin (setref! (apply-env-ref env itdor) (+ 1 (eval-expresion by env))) (eval-expresion body env) (eval-for-exp itdor from until by body env) )]
+      [else #f]
+    )      
   )  
 )
 
@@ -366,14 +366,13 @@
       (rest-primList () (cdr exp))
       (empty-primList () (null? exp)))))
 
-(define contains-set-exp?
-  (lambda (exp)
+(define (contains-set-exp? exp)
     (cases expresion exp
       (begin-exp (id rhs-exp) (contains-set-exp? id))
       (while-exp (condicion exp) (contains-set-exp? exp))
       (for-exp (itdor from until by body) (contains-set-exp? body))
       (set-exp (id exps) #t)
-      (else #f))))
+      (else #f)))
 
 (define eval-decl-exp
   (lambda (decl env)
@@ -456,9 +455,9 @@
   (lambda (num)
     (cases numero-exp num
       (decimal-num (num) num)
-      (octal-num (num) num)
-      (bin-num (num) num)
-      (hex-num (num) num)
+      (octal-num (num) (convertir-string num))
+      (bin-num (num) (convertir-string num))
+      (hex-num (num) (convertir-string num))
       (float-num (num) num)
       )
     ))
@@ -466,18 +465,18 @@
 (define aplicar-primitiva
   (lambda (prim exp1 exp2)
     (cases primitiva prim
-      (sum-prim () (+ exp1 exp2))
-      (minus-prim () (- exp1 exp2))
-      (mult-prim () (* exp1 exp2))
-      (div-prim () (/ exp1 exp2))
-      (mayor-prim () (> exp1 exp2))
-      (menor-prim () (< exp1 exp2))
-      (mayorigual-prim () (>= exp1 exp2))
-      (menorigual-prim () (<= exp1 exp2))
-      (igual-prim () (= exp1 exp2))
-      (diferente-prim () (not (= exp1 exp2)))
-      (mod-prim () (modulo exp1 exp2))
-      (elevar-prim () (expt exp1 exp2))
+      (sum-prim () (operando-numeros + exp1 exp2 #f))
+      (minus-prim () (operando-numeros - exp1 exp2 #f))
+      (mult-prim () (operando-numeros * exp1 exp2 #f))
+      (div-prim () (operando-numeros / exp1 exp2 #f))
+      (mayor-prim () (operando-numeros > exp1 exp2 #t))
+      (menor-prim () (operando-numeros < exp1 exp2 #t))
+      (mayorigual-prim () (operando-numeros >= exp1 exp2 #t))
+      (menorigual-prim () (operando-numeros <= exp1 exp2 #t))
+      (igual-prim () (operando-numeros = exp1 exp2 #t))
+      (diferente-prim () (operando-numeros not (= exp1 exp2 #t)))
+      (mod-prim () (operando-numeros modulo exp1 exp2 #t))
+      (elevar-prim () (operando-numeros expt exp1 exp2 #t))
 
       )
     )
