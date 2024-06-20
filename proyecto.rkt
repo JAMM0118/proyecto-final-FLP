@@ -67,7 +67,7 @@
     (expresion ("if" expresion "{" expresion "else" expresion "}") if-exp)
 
     ;;Iteradores
-    ;(expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
+    (expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
     (expresion ("while" expresion "{" expresion "}") while-exp)
 
     ;;Switch
@@ -244,10 +244,12 @@
       (if-exp (condicion then elses) (if (eval-expresion condicion env) (eval-expresion then env) (eval-expresion elses env)))
       (set-exp (id rhs-exp) (begin (setref! (apply-env-ref env id) (eval-expresion rhs-exp env)) ))
       (begin-exp (exp exps) (let loop ((acc (eval-expresion exp env)) (exps exps)) (if (null? exps) acc (loop (eval-expresion (car exps) env) (cdr exps)))))
+      
+      (for-exp (itdor from until by body) (eval-for-exp itdor from until by body (extend-env (list itdor) (list (eval-var-exp-rand from env)) env)))
+      
       (while-exp (condicion cuerpo) (apply-while-exp condicion cuerpo env))
       (switch-exp (item cases caseValues defaultValue) (eval-switch-exp item  (map (lambda (caseKey) (eval-expresion caseKey env)) cases)
       (map (lambda (caseValue) (eval-expresion caseValue env)) caseValues) (eval-expresion defaultValue env) env))
-      
       (func-exp (ids body) (closure ids body env))
       (call-exp (rator rands)(let ((proc (eval-expresion rator env))
                      (args (eval-rands rands env)))
@@ -281,6 +283,20 @@
                     (indirect-target (ref1) ref1)))))
       (else
        (direct-target (eval-expresion rand env))))))
+
+
+(define eval-for-exp 
+  (lambda (itdor from until by body env)
+
+    (
+      (display (apply-env-ref env itdor ))
+    (display (setref! (apply-env-ref env itdor) 2))
+            (display (apply-env-ref env itdor))
+      
+      ) 
+     
+  )  
+)
 
 (define eval-switch-exp
   (lambda (item cases caseValues defaultValue env)
@@ -351,25 +367,45 @@
       (empty-primList () (null? exp)))))
 
 
+(define (contains-set-exp? exp)
+  (cond
+    [(or (set-exp? exp) (begin-exp? exp)) #t]
+    [else #f]))
+
 (define eval-decl-exp
   (lambda (decl env)
     (cases var-decl decl
-    
       (let-exp (ids rands body)
-               (let ((args (eval-let-exp-rands rands env)))
-                 (eval-expresion body (extend-env ids args env))))
+               (if (contains-set-exp? body)
+                   (eopl:error "No se puede modificar la ligadura en una declaración let")
+                   (let ((args (eval-var-exp-rands rands env)))
+                     (eval-expresion body (extend-env ids args env)))))
       (lvar-exp (ids rands body)
-                (let ((args (eval-let-exp-rands rands env)))
+                (let ((args (eval-var-exp-rands rands env)))
                   (eval-expresion body (extend-env ids args env))))
+      )))
+
+(define begin-exp?
+  (lambda (exp)
+    (cases expresion exp
+      (begin-exp (exp exps) #t)
+      (else #f)
       )
     )
-  )
+)
+(define set-exp?
+  (lambda (exp)
+    (cases expresion exp
+      (set-exp (ids idsValues) #t)
+      (else #f)
+      )
+    )
+)
 (define cadena-expression
   (lambda (text ltexts)
     (string-append text (apply string-append (map (lambda (lt) (string-append " " lt)) ltexts)))
     )
   )
-
 
 (define aplicar-primitiva-cadena
   (lambda (prim exps)
@@ -465,12 +501,12 @@
     )
   )
 
-(define eval-let-exp-rands
+(define eval-var-exp-rands
   (lambda (rands env)
-    (map (lambda (x) (eval-let-exp-rand x env))
+    (map (lambda (x) (eval-var-exp-rand x env))
          rands)))
 
-(define eval-let-exp-rand
+(define eval-var-exp-rand
   (lambda (rand env)
     (direct-target (eval-expresion rand env))))
 
