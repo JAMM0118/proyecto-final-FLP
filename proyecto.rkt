@@ -366,11 +366,14 @@
       (rest-primList () (cdr exp))
       (empty-primList () (null? exp)))))
 
-
-(define (contains-set-exp? exp)
-  (cond
-    [(or (set-exp? exp) (begin-exp? exp)) #t]
-    [else #f]))
+(define contains-set-exp?
+  (lambda (exp)
+    (cases expresion exp
+      (begin-exp (id rhs-exp) (contains-set-exp? id))
+      (while-exp (condicion exp) (contains-set-exp? exp))
+      (for-exp (itdor from until by body) (contains-set-exp? body))
+      (set-exp (id exps) #t)
+      (else #f))))
 
 (define eval-decl-exp
   (lambda (decl env)
@@ -385,22 +388,7 @@
                   (eval-expresion body (extend-env ids args env))))
       )))
 
-(define begin-exp?
-  (lambda (exp)
-    (cases expresion exp
-      (begin-exp (exp exps) #t)
-      (else #f)
-      )
-    )
-)
-(define set-exp?
-  (lambda (exp)
-    (cases expresion exp
-      (set-exp (ids idsValues) #t)
-      (else #f)
-      )
-    )
-)
+
 (define cadena-expression
   (lambda (text ltexts)
     (string-append text (apply string-append (map (lambda (lt) (string-append " " lt)) ltexts)))
