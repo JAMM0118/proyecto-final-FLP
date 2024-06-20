@@ -206,7 +206,7 @@
 
 (define expval?
   (lambda (x)
-    (or (number? x) (boolean? x) (string? x) (vector? x) (symbol? x) (list? x) (procedure? x))))
+    (or (number? x) (boolean? x) (string? x) (vector? x) (symbol? x) (list? x) (procval? x))))
 
 (define-datatype target target?
   (direct-target (expval expval?))
@@ -218,6 +218,11 @@
   (a-ref (position integer?)
          (vec vector?)))
 
+(define-datatype procval procval?
+  (closure
+   (ids (list-of symbol?))
+   (body expresion?)
+   (env environment?)))
 
 (define eval-expresion
   (lambda (exp env)
@@ -243,11 +248,39 @@
       (switch-exp (item cases caseValues defaultValue) (eval-switch-exp item  (map (lambda (caseKey) (eval-expresion caseKey env)) cases)
       (map (lambda (caseValue) (eval-expresion caseValue env)) caseValues) (eval-expresion defaultValue env) env))
       
-      (func-exp (ids body) (lambda (args) (eval-expresion body (extend-env ids args env))))
-      (call-exp (exp exps) (apply (eval-expresion exp env) (list (map (lambda (arg) (eval-expresion arg env)) exps))))
-      
+      (func-exp (ids body) (closure ids body env))
+      (call-exp (rator rands)(let ((proc (eval-expresion rator env))
+                     (args (eval-rands rands env)))
+                 (if (procval? proc)
+                     (apply-procedure proc args)
+                     (eopl:error 'eval-expression
+                                 "Attempt to apply non-procedure ~s" proc))))      
       )
     ))
+
+
+(define apply-procedure
+  (lambda (proc args)
+    (cases procval proc
+      (closure (ids body env)
+               (eval-expresion body (extend-env ids args env))))))
+
+
+(define eval-rands
+  (lambda (rands env)
+    (map (lambda (x) (eval-rand x env)) rands)))
+
+(define eval-rand
+  (lambda (rand env)
+    (cases expresion rand
+      (var-exp (id)
+               (indirect-target
+                (let ((ref (apply-env-ref env id)))
+                  (cases target (primitive-deref ref)
+                    (direct-target (expval) ref)
+                    (indirect-target (ref1) ref1)))))
+      (else
+       (direct-target (eval-expresion rand env))))))
 
 (define eval-switch-exp
   (lambda (item cases caseValues defaultValue env)
