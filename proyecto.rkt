@@ -230,6 +230,7 @@
 
 (define eval-expresion
   (lambda (exp env)
+
     (cases expresion exp
       (num-exp (numero) (eval-numero-exp numero))
       (var-exp (id) (apply-env env id))
