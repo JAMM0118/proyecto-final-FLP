@@ -47,7 +47,6 @@
     (expresion ("array" "(" (separated-list expresion ",") ")") array-exp)
 
     ;;Expresion primitivas
-
     ;;Primitiva numerica
     (expresion ("(" expresion primitiva expresion ")") prim-num-exp)
 
@@ -62,7 +61,6 @@
 
     ;;Primitiva de cadenas
     (expresion (primitivaCadena "(" (separated-list expresion ",") ")") prim-cad-exp)
-
 
     ;;Condicionales
     (expresion ("if" expresion "{" expresion "else" expresion "}") if-exp)
@@ -82,13 +80,13 @@
     (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
     (expresion ("call" expresion "(" (separated-list expresion ",") ")") call-exp)
 
-    ; ; ;;Instanciación y uso de estructuras
-    ; (expresion ("new" identificador "(" (separated-list expresion ",") ")") new-struct-exp)
-    ; (expresion ("get" expresion "." identificador) get-struct-exp)
-    ; (expresion ("set-struct" expresion "." identificador "=" expresion) set-struct-exp)
+    ;;Instanciación y uso de estructuras
+    (expresion ("new" identificador "(" (separated-list expresion ",") ")") new-struct-exp)
+    (expresion ("get" expresion "." identificador) get-struct-exp)
+    (expresion ("set-struct" expresion "." identificador "=" expresion) set-struct-exp)
 
-    ; ; ;;Reconocimiento de patrones
-    ; (expresion ("match" expresion "{" (arbno regular-exp "=>" expresion) "}") match-exp)
+    ;;Reconocimiento de patrones
+    (expresion ("match" expresion "{" (arbno regular-exp "=>" expresion) "}") match-exp)
 
     ;;Numero-exp
     (numero-exp (digitoDecimal) decimal-num)
@@ -97,12 +95,11 @@
     (numero-exp (digitoHexadecimal) hex-num)
     (numero-exp (flotante) float-num)
 
-    
     ;;Bool-exp
     (bool-expresion ("true") true-exp)
     (bool-expresion ("false") false-exp)
 
-    ; ;;primitivas numéricas
+    ;;primitivas numéricas
     (primitiva ("+") sum-prim)
     (primitiva ("-") minus-prim)
     (primitiva ("*") mult-prim)
@@ -116,42 +113,42 @@
     (primitiva ("!=") diferente-prim)
     (primitiva ("==") igual-prim)
 
-    ; ;;primitiva booleana
+    ;;primitiva booleana
     (primitivaBooleana ("and") and-prim)
     (primitivaBooleana ("or") or-prim)
     (primitivaBooleana ("xor") xor-prim)
     (primitivaBooleana ("not") not-prim)
 
-    ; ;;Primitiva listas
+    ;;Primitiva listas
     (primitivaListas ("first") first-primList)
     (primitivaListas ("rest") rest-primList)
     (primitivaListas ("empty?") empty-primList)
 
-    ; ;;Primitiva arrays
+    ;;Primitiva arrays
     (primitivaArray ("length") length-primArr)
     (primitivaArray ("index") index-primArr)
     (primitivaArray ("slice") slice-primArr)
     (primitivaArray ("setlist") setlist-primArr)
 
-    ; ;;Primitiva cadenas
+    ;;Primitiva cadenas
     (primitivaCadena ("concat") concat-primCad)
     (primitivaCadena ("string-length") length-primCad)
     (primitivaCadena ("elementAt") index-primCad)
 
-    ; ;;Variables
+    ;;Variables
     (var-decl ("var" (arbno identificador "=" expresion) "in" expresion) lvar-exp)
     (var-decl ("let" (arbno identificador "=" expresion) "in" expresion) let-exp)
 
-    ; ;;Estructuras de datos
+    ;;Estructuras de datos
     (struct-decl ("struct" identificador "{" (arbno identificador) "}") struct-exp)
 
     ;;Expresiones regulares
-    (regular-exp (identificador "::" identificador) list-match-exp)
+    ;(regular-exp (identificador "::" identificador) list-match-exp)
     (regular-exp ("numero" "(" identificador ")") num-match-exp)
-    (regular-exp ("cadena" "(" identificador ")") cad-match-exp)
-    (regular-exp ("boolean" "(" identificador ")") bool-match-exp)
-    (regular-exp ("array" "(" (separated-list identificador ",") ")") array-match-exp)
-    (regular-exp ("empty") empty-match-exp)
+    ; (regular-exp ("cadena" "(" identificador ")") cad-match-exp)
+    ; (regular-exp ("boolean" "(" identificador ")") bool-match-exp)
+    ; (regular-exp ("array" "(" (separated-list identificador ",") ")") array-match-exp)
+    ; (regular-exp ("empty") empty-match-exp)
     (regular-exp ("default") default-match-exp)
     )
   )
@@ -168,7 +165,6 @@
   (sllgen:make-string-scanner lexica gramatica))
 
 ;El FrontEnd (Análisis léxico (scanner) y sintáctico (parser) integrados)
-
 (define scan&parse
   (sllgen:make-string-parser lexica gramatica))
 
@@ -176,9 +172,10 @@
 (define eval-program
   (lambda (pgm)
     (cases programa pgm
-      (a-programa (struct-decl  exp) (
+      (a-programa (structs  exp) (
         cond 
-        [(null? struct-decl) (eval-expresion exp ambiente-inicial)]
+        [(or (null? struct-exp) (eqv? '() structs)) (eval-expresion exp ambiente-inicial)]
+        [else (eval-expresion exp (extend-env (map (lambda(m)(car m)) (map (lambda (struc)(eval-struct-decl struc) )structs)) (map (lambda(m)(cadr m)) (map (lambda (struc)(eval-struct-decl struc) )structs)) ambiente-inicial) )]
         )
         )
       )
@@ -191,6 +188,9 @@
                         eval-program(sllgen:make-stream-parser
                                      lexica
                                      gramatica)))
+
+
+
 
 (define-datatype environment environment?
   (empty-env-record)
@@ -260,10 +260,43 @@
                  (if (procval? proc)
                      (apply-procedure proc args)
                      (eopl:error 'eval-expression
-                                 "Attempt to apply non-procedure ~s" proc))))      
+                                 "Attempt to apply non-procedure ~s" proc))))
+      (match-exp (item regular-exp casesValue)(eval-match-exp (car regular-exp) )) 
+      (new-struct-exp (id rands) (let ((struct (apply-env-ref env id))) (list id (map (lambda (x) (eval-expresion x env)) rands))))
+      (get-struct-exp (id exp) (extractItem (searchItem exp (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) (cadr (eval-expresion id env))))
+      (set-struct-exp (id exp1 exp2) (list id exp1 (eval-expresion exp2 env)))
+      
       )
     ))
+    
 
+(define searchItem
+  (lambda (exp listId)
+    (let ((pos (rib-find-position exp listId)))
+      (if (number? pos)
+          pos
+          (eopl:error 'searchItem "No binding for ~s" exp)
+      ) 
+    )
+  )
+)
+
+(define extractItem
+  (lambda (pos listId)
+    (list-ref listId pos)
+    ))
+
+
+(define eval-match-exp
+  (lambda (cases-regular-exp)
+      (display cases-regular-exp)
+    ( 
+      cases regular-exp cases-regular-exp
+      (num-match-exp (id) id)
+      (default-match-exp () #t)
+     )
+    )
+  )
 
 (define apply-procedure
   (lambda (proc args)
@@ -271,6 +304,14 @@
       (closure (ids body env)
                (eval-expresion body (extend-env ids args env))))))
 
+
+(define eval-struct-decl
+  (lambda (structs)
+    (cases struct-decl structs
+      (struct-exp (id ids) (list id (map (lambda (x) x) ids)))
+    )
+    )
+  )
 
 (define eval-rands
   (lambda (rands env)
@@ -293,10 +334,10 @@
   (lambda (itdor from until by body env)
     (let ((itdor-val (eval-expresion (var-exp itdor) env)))
       (cond  
-      [(< itdor-val (eval-expresion until env))
+      [(<= itdor-val (eval-expresion until env))
          (begin
-           (setref! (apply-env-ref env itdor) (+ itdor-val (eval-expresion by env)))
            (eval-expresion body env)
+           (setref! (apply-env-ref env itdor) (+ itdor-val (eval-expresion by env)))
            (eval-for-exp itdor from until by body env))]
       [else #f]))
   )
@@ -383,7 +424,7 @@
     (cases var-decl decl
       (let-exp (ids rands body)
                (if (contains-set-exp? body)
-                   (eopl:error "No se puede modificar la ligadura en una declaración let")
+                   (eopl:error "No se puede modificar la ligadura de una variable en una declaración let")
                    (let ((args (eval-var-exp-rands rands env)))
                      (eval-expresion body (extend-env ids args env)))))
       (lvar-exp (ids rands body)
