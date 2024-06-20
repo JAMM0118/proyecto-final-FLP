@@ -291,11 +291,15 @@
 
 (define eval-for-exp 
   (lambda (itdor from until by body env)
-    (cond 
-      [(<= (eval-expresion (var-exp itdor) env) (eval-expresion until env)) (begin (setref! (apply-env-ref env itdor) (+ 1 (eval-expresion by env))) (eval-expresion body env) (eval-for-exp itdor from until by body env) )]
-      [else #f]
-    )      
-  )  
+    (let ((itdor-val (eval-expresion (var-exp itdor) env)))
+      (cond  
+      [(< itdor-val (eval-expresion until env))
+         (begin
+           (setref! (apply-env-ref env itdor) (+ itdor-val (eval-expresion by env)))
+           (eval-expresion body env)
+           (eval-for-exp itdor from until by body env))]
+      [else #f]))
+  )
 )
 
 (define eval-switch-exp
