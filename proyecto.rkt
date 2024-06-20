@@ -353,7 +353,7 @@
     (cases primitivaArray prim
       (length-primArr () (vector-length (car exps)))
       (index-primArr () (vector-ref (car exps) (cadr exps)))
-      (slice-primArr () (vector-copy (car exps) (cadr exps) (caddr exps)))
+      (slice-primArr () (vector-copy (car exps) (cadr exps) (+ 1 (caddr exps))))
       (setlist-primArr () (vector-set! (car exps) (cadr exps) (caddr exps)) (car exps))
       )
     )
