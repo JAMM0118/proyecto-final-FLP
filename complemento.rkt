@@ -1,6 +1,6 @@
 #lang racket
 
-(provide convertir-decimal crear-representacion convertir-string operando-numeros)
+(provide (all-defined-out))
 
 (define to-string (lambda (x) (cond
   [(string? x) x]

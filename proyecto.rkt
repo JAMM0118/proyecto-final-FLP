@@ -1,6 +1,7 @@
 #lang eopl
 (require racket/vector)
 (require "complemento.rkt")
+(provide (all-defined-out))
 
 (define lexica
   '((white-sp
@@ -265,7 +266,7 @@
       (match-exp (item regular-exp casesValue)(eval-match-exp (car regular-exp) )) 
       (new-struct-exp (id rands) (let ((struct (apply-env-ref env id))) (list id (map (lambda (x) (eval-expresion x env)) rands))))
       (get-struct-exp (id exp) (extractItem (searchItem exp (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) (cadr (eval-expresion id env))))
-      (set-struct-exp (id exp1 exp2) (list id exp1 (eval-expresion exp2 env)))
+      (set-struct-exp (id exp1 exp2) (list id exp1 exp2))
       
       )
     ))
