@@ -193,7 +193,8 @@
   (extended-env-record
    (syms (list-of symbol?))
    (vec vector?)
-   (env environment?)))
+   (env environment?))
+)
 
 (define empty-env
   (lambda ()
@@ -271,12 +272,11 @@
 (define eval-match-exp
   (lambda (item cases-regular-exp valuesItem env)
        (let ((regular (car cases-regular-exp)))
-       (display valuesItem)(newline)
               (cases regular-exp regular
                 (num-match-exp (id) (if (number? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (cad-match-exp (id) (if (string? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (bool-match-exp (id) (if (boolean? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
-                (array-match-exp (ids) (if (vector? (eval-expresion item env)) (eval-expresion (car valuesItem) env) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                (array-match-exp (ids) (if (vector? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list (car ids)) (list (direct-target (car (vector->list(vector-copy (eval-expresion item env) 0 1))))) (extend-env (list (cadr ids)) (list (direct-target (car (vector->list (vector-copy (eval-expresion item env) 1 2))))) (extend-env (list (caddr ids)) (list (direct-target (vector-copy (eval-expresion item env) 2 (vector-length (eval-expresion item env))))) env)))) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (empty-match-exp () (eval-expresion (car valuesItem) env) )
                 (default-match-exp () (eval-expresion (car valuesItem) env))
                 (list-match-exp (id1 id2) (if (list? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id1) (list (direct-target (car (eval-expresion item env)))) (extend-env (list id2) (list (direct-target (cdr  (eval-expresion item env)))) env))) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
@@ -392,7 +392,8 @@
                            (let ((pos (rib-find-position sym syms)))
                              (if (number? pos)
                                  (a-ref pos vals)
-                                 (apply-env-ref env sym)))))))
+                                 (apply-env-ref env sym))))
+            )))
 
 (define primitive-deref
   (lambda (ref)
@@ -437,8 +438,8 @@
       (begin-exp (id rhs-exp) (contains-set-exp? id))
       (while-exp (condicion exp) (contains-set-exp? exp))
       (for-exp (itdor from until by body) (contains-set-exp? body))
-      (if-exp (cond then elses) (or (contains-set-exp? cond) (contains-set-exp? then) (contains-set-exp? elses)))
-      ;(match-exp (item regular-exp casesValue) (or (contains-set-exp? item) (contains-set-exp? regular-exp) (contains-set-exp? casesValue)))
+      (if-exp (condicion then elses) (or (contains-set-exp? then) (contains-set-exp? elses)))
+      (match-exp (item regular-exp casesValue) (car (map (lambda (x) (contains-set-exp? x)) casesValue)))
       (set-struct-exp (id exp1 exp2) #t)
       (set-exp (id exps) #t)
       (else #f)))
@@ -453,7 +454,6 @@
                      (eval-expresion body (extend-env ids args env)))))
       (lvar-exp (ids rands body)
                 (let ((args (eval-var-exp-rands rands env)))
-                (display args)(newline)
                   (eval-expresion body (extend-env ids args env))))
       )))
 
