@@ -145,31 +145,28 @@
     (struct-decl ("struct" identificador "{" (arbno identificador) "}") struct-exp)
 
     ;;Expresiones regulares
-    ;(regular-exp (identificador "::" identificador) list-match-exp)
+    (regular-exp (identificador "::" identificador) list-match-exp)
     (regular-exp ("numero" "(" identificador ")") num-match-exp)
-    ; (regular-exp ("cadena" "(" identificador ")") cad-match-exp)
-    ; (regular-exp ("boolean" "(" identificador ")") bool-match-exp)
-    ; (regular-exp ("array" "(" (separated-list identificador ",") ")") array-match-exp)
-    ; (regular-exp ("empty") empty-match-exp)
+    (regular-exp ("cadena" "(" identificador ")") cad-match-exp)
+    (regular-exp ("boolean" "(" identificador ")") bool-match-exp)
+    (regular-exp ("array" "(" (separated-list identificador ",") ")") array-match-exp)
+    (regular-exp ("empty") empty-match-exp)
     (regular-exp ("default") default-match-exp)
     )
   )
 
 (sllgen:make-define-datatypes lexica gramatica)
 
-
 (define show-the-datatypes
   (lambda () (sllgen:list-define-datatypes lexica gramatica)))
 
 ;El Analizador Léxico (Scanner)
-
 (define just-scan
   (sllgen:make-string-scanner lexica gramatica))
 
 ;El FrontEnd (Análisis léxico (scanner) y sintáctico (parser) integrados)
 (define scan&parse
   (sllgen:make-string-parser lexica gramatica))
-
 
 (define eval-program
   (lambda (pgm)
@@ -179,10 +176,10 @@
         [(or (null? struct-exp) (eqv? '() structs)) (eval-expresion exp ambiente-inicial)]
         [else (eval-expresion exp (extend-env (map (lambda(m)(car m)) (map (lambda (struc)(eval-struct-decl struc) )structs)) (map (lambda(m)(cadr m)) (map (lambda (struc)(eval-struct-decl struc) )structs)) ambiente-inicial) )]
         )
-        )
       )
     )
   )
+)
 
 ;El Interpretador (FrontEnd + Evaluación + señal para lectura +
 (define interpretador
@@ -190,9 +187,6 @@
                         eval-program(sllgen:make-stream-parser
                                      lexica
                                      gramatica)))
-
-
-
 
 (define-datatype environment environment?
   (empty-env-record)
@@ -208,7 +202,6 @@
 (define extend-env
   (lambda (syms vals env)
     (extended-env-record syms (list->vector vals) env)))
-
 
 (define expval?
   (lambda (x)
@@ -232,7 +225,6 @@
 
 (define eval-expresion
   (lambda (exp env)
-
     (cases expresion exp
       (num-exp (numero) (eval-numero-exp numero))
       (void-exp () 'void-exp)
@@ -265,17 +257,35 @@
                      (apply-procedure proc args)
                      (eopl:error 'eval-expression
                                  "Attempt to apply non-procedure ~s" proc))))
-      (match-exp (item regular-exp casesValue)(eval-match-exp (car regular-exp) )) 
-      (new-struct-exp (id rands) (let ((struct (apply-env-ref env id))) (list id (map (lambda (x) (eval-expresion x env)) rands))))
+      (match-exp (item regulars-exp casesValue)(eval-match-exp item regulars-exp casesValue env)) 
+      (new-struct-exp (id rands) (list id (map (lambda (x) (eval-expresion x env)) rands)))
       (get-struct-exp (id exp) (extractItem (searchItem exp (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) (cadr (eval-expresion id env))))
       (set-struct-exp (id exp1 exp2) (begin (setref! (apply-env-ref env (extract-id id))
       (list (car (eval-expresion id env))(replace-in-list (cadr (eval-expresion id env)) 
         (searchItem exp1 (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) 
-        (eval-expresion exp2 env)))) (eval-expresion (void-exp) env))
-)
-      
+        (eval-expresion exp2 env)))) (eval-expresion (void-exp) env)))
       )
-    ))
+    )
+)
+
+(define eval-match-exp
+  (lambda (item cases-regular-exp valuesItem env)
+       (let ((regular (car cases-regular-exp)))
+       (display valuesItem)(newline)
+              (cases regular-exp regular
+                (num-match-exp (id) (if (number? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                (cad-match-exp (id) (if (string? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                (bool-match-exp (id) (if (boolean? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                (array-match-exp (ids) (if (vector? (eval-expresion item env)) (eval-expresion (car valuesItem) env) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                (empty-match-exp () (eval-expresion (car valuesItem) env) )
+                (default-match-exp () (eval-expresion (car valuesItem) env))
+                (list-match-exp (id1 id2) (if (list? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id1) (list (direct-target (car (eval-expresion item env)))) (extend-env (list id2) (list (direct-target (cdr  (eval-expresion item env)))) env))) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
+                )
+              )
+      
+       
+    )
+)
 
 (define (extract-id exp)
   (cases expresion exp
@@ -283,7 +293,6 @@
     (else (eopl:error 'extract-id "No es un identificador")))
   )
 
-  
 (define (replace-in-list lst index new-value)
   (define (replace-aux lst current-index)
     (if (null? lst)
@@ -311,20 +320,11 @@
     (list-ref listId pos)
     ))
 
-
-(define eval-match-exp
-  (lambda (cases-regular-exp)
-      (display cases-regular-exp)
-    
-    )
-  )
-
 (define apply-procedure
   (lambda (proc args)
     (cases procval proc
       (closure (ids body env)
                (eval-expresion body (extend-env ids args env))))))
-
 
 (define eval-struct-decl
   (lambda (structs)
@@ -350,7 +350,6 @@
       (else
        (direct-target (eval-expresion rand env))))))
 
-
 (define eval-for-exp 
   (lambda (itdor from until by body env)
     (let ((itdor-val (eval-expresion (var-exp itdor) env)))
@@ -373,6 +372,7 @@
       )
     )
   )
+
 
 (define apply-while-exp (
   lambda (condicion cuerpo env)
@@ -438,7 +438,7 @@
       (while-exp (condicion exp) (contains-set-exp? exp))
       (for-exp (itdor from until by body) (contains-set-exp? body))
       (if-exp (cond then elses) (or (contains-set-exp? cond) (contains-set-exp? then) (contains-set-exp? elses)))
-      (match-exp (item regular-exp casesValue) (or (contains-set-exp? item) (contains-set-exp? regular-exp) (contains-set-exp? casesValue)))
+      ;(match-exp (item regular-exp casesValue) (or (contains-set-exp? item) (contains-set-exp? regular-exp) (contains-set-exp? casesValue)))
       (set-struct-exp (id exp1 exp2) #t)
       (set-exp (id exps) #t)
       (else #f)))
@@ -453,9 +453,9 @@
                      (eval-expresion body (extend-env ids args env)))))
       (lvar-exp (ids rands body)
                 (let ((args (eval-var-exp-rands rands env)))
+                (display args)(newline)
                   (eval-expresion body (extend-env ids args env))))
       )))
-
 
 (define cadena-expression
   (lambda (text ltexts)
@@ -493,23 +493,23 @@
 
 (define (unTrue? lst)
   (cond
-    [(null? lst) #f] ; Si la lista está vacía, retorna falso
-    [(eqv? (car lst) #t) #t] ; Si el primer elemento es verdadero, retorna verdadero
-    [else (unTrue? (cdr lst))])) ; De lo contrario, sigue buscando en el resto de la lista
+    [(null? lst) #f]
+    [(eqv? (car lst) #t) #t] 
+    [else (unTrue? (cdr lst))])) 
 
 (define (todos-iguales? lst)
   (cond
-    [(null? lst) #t] ; Lista vacía, consideramos todos iguales
-    [(null? (cdr lst)) #t] ; Solo un elemento, todos iguales
+    [(null? lst) #t]
+    [(null? (cdr lst)) #t]
     [else
      (let loop ([primero (car lst)] [resto (cdr lst)])
        (if (null? resto)
-           #t ; Llegamos al final sin encontrar diferencias
-           (if (eqv? primero (car resto)) (loop primero (cdr resto)) ; Siguiente elemento
+           #t 
+           (if (eqv? primero (car resto)) (loop primero (cdr resto)) 
                #f)
            )
        )
-     ])) ; Encontramos elementos diferentes
+     ]))
 
 (define eval-bool-exp
   (lambda (bool)
@@ -546,7 +546,6 @@
       (diferente-prim () (operando-numeros not (= exp1 exp2 #t)))
       (mod-prim () (operando-numeros modulo exp1 exp2 #t))
       (elevar-prim () (operando-numeros expt exp1 exp2 #t))
-
       )
     )
   )
@@ -565,7 +564,6 @@
 (define eval-var-exp-rand
   (lambda (rand env)
     (direct-target (eval-expresion rand env))))
-
 
 (define ref-to-direct-target?
   (lambda (x)
@@ -586,6 +584,7 @@
                          (indirect-target (p)
                                           (eopl:error 'deref
                                                       "Illegal reference: ~s" ref1)))))))
+
 (define rib-find-position
   (lambda (sym los)
     (list-find-position sym los)))
