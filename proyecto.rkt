@@ -268,16 +268,20 @@
       (match-exp (item regular-exp casesValue)(eval-match-exp (car regular-exp) )) 
       (new-struct-exp (id rands) (let ((struct (apply-env-ref env id))) (list id (map (lambda (x) (eval-expresion x env)) rands))))
       (get-struct-exp (id exp) (extractItem (searchItem exp (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) (cadr (eval-expresion id env))))
-      (set-struct-exp (id exp1 exp2) (display  id))
+      (set-struct-exp (id exp1 exp2) (begin (setref! (apply-env-ref env (extract-id id))
+      (list (car (eval-expresion id env))(replace-in-list (cadr (eval-expresion id env)) 
+        (searchItem exp1 (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) 
+        (eval-expresion exp2 env)))) (eval-expresion (void-exp) env))
+)
       
       )
     ))
 
-
-; (begin (setref! (primitive-deref id)
-;       (replace-in-list (cadr (eval-expresion id env)) 
-;         (searchItem exp1 (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) 
-;         (eval-expresion exp2 env))) (eval-expresion (void-exp) env))
+(define (extract-id exp)
+  (cases expresion exp
+    (var-exp (id) id)
+    (else (eopl:error 'extract-id "No es un identificador")))
+  )
 
   
 (define (replace-in-list lst index new-value)
@@ -433,6 +437,9 @@
       (begin-exp (id rhs-exp) (contains-set-exp? id))
       (while-exp (condicion exp) (contains-set-exp? exp))
       (for-exp (itdor from until by body) (contains-set-exp? body))
+      (if-exp (cond then elses) (or (contains-set-exp? cond) (contains-set-exp? then) (contains-set-exp? elses)))
+      (match-exp (item regular-exp casesValue) (or (contains-set-exp? item) (contains-set-exp? regular-exp) (contains-set-exp? casesValue)))
+      (set-struct-exp (id exp1 exp2) #t)
       (set-exp (id exps) #t)
       (else #f)))
 
