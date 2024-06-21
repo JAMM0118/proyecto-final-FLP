@@ -40,6 +40,7 @@
     (expresion (numero-exp) num-exp)
     (expresion ("\"" identificador (arbno identificador) "\"") cadena-exp)
     (expresion (var-decl) decl-exp)
+    (expresion ("void") void-exp)
 
     ;;Listas y arrays
     (expresion ("list" "(" (separated-list expresion ",") ")") lista-exp)
@@ -234,6 +235,7 @@
 
     (cases expresion exp
       (num-exp (numero) (eval-numero-exp numero))
+      (void-exp () 'void-exp)
       (var-exp (id) (apply-env env id))
       (bool-exp (bool) (eval-bool-exp bool))
       (prim-num-exp (exp1 prim exp2) (aplicar-primitiva prim (eval-expresion exp1 env) (eval-expresion exp2 env)))
@@ -248,7 +250,7 @@
       (array-exp (exps) (list->vector (map (lambda (item) (eval-expresion item env)) exps)))
       (prim-array-exp (prim exps) (aplicar-primitiva-array prim (map (lambda (item) (eval-expresion item env)) exps)))
       (if-exp (condicion then elses) (if (eval-expresion condicion env) (eval-expresion then env) (eval-expresion elses env)))
-      (set-exp (id rhs-exp) (begin (setref! (apply-env-ref env id) (eval-expresion rhs-exp env)) ))
+      (set-exp (id rhs-exp) (begin (setref! (apply-env-ref env id) (eval-expresion rhs-exp env)) (eval-expresion (void-exp) env)))
       (begin-exp (exp exps) (let loop ((acc (eval-expresion exp env)) (exps exps)) (if (null? exps) acc (loop (eval-expresion (car exps) env) (cdr exps)))))
       
       (for-exp (itdor from until by body) (eval-for-exp itdor from until by body (extend-env (list itdor) (list (eval-var-exp-rand from env)) env)))
@@ -266,11 +268,28 @@
       (match-exp (item regular-exp casesValue)(eval-match-exp (car regular-exp) )) 
       (new-struct-exp (id rands) (let ((struct (apply-env-ref env id))) (list id (map (lambda (x) (eval-expresion x env)) rands))))
       (get-struct-exp (id exp) (extractItem (searchItem exp (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) (cadr (eval-expresion id env))))
-      (set-struct-exp (id exp1 exp2) (list id exp1 exp2))
+      (set-struct-exp (id exp1 exp2) (display  id))
       
       )
     ))
-    
+
+
+; (begin (setref! (primitive-deref id)
+;       (replace-in-list (cadr (eval-expresion id env)) 
+;         (searchItem exp1 (primitive-deref (apply-env-ref env (car (eval-expresion id env))))) 
+;         (eval-expresion exp2 env))) (eval-expresion (void-exp) env))
+
+  
+(define (replace-in-list lst index new-value)
+  (define (replace-aux lst current-index)
+    (if (null? lst)
+        '()
+        (if (= current-index index)
+            (cons new-value (replace-aux (cdr lst) (+ current-index 1)))
+            (cons (car lst) (replace-aux (cdr lst) (+ current-index 1))))))
+  (if (or (< index 0) (>= index (length lst)))
+      (eopl:error "Índice fuera de rango")
+      (replace-aux lst 0)))  
 
 (define searchItem
   (lambda (exp listId)
@@ -292,11 +311,7 @@
 (define eval-match-exp
   (lambda (cases-regular-exp)
       (display cases-regular-exp)
-    ( 
-      cases regular-exp cases-regular-exp
-      (num-match-exp (id) id)
-      (default-match-exp () #t)
-     )
+    
     )
   )
 
