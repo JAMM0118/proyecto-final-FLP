@@ -251,7 +251,10 @@
       (while-exp (condicion cuerpo) (apply-while-exp condicion cuerpo env))
       (switch-exp (item cases caseValues defaultValue) (eval-switch-exp item  (map (lambda (caseKey) (eval-expresion caseKey env)) cases)
       (map (lambda (caseValue) (eval-expresion caseValue env)) caseValues) (eval-expresion defaultValue env) env))
+
       (func-exp (ids body) (closure ids body env))
+
+
       (call-exp (rator rands)(let ((proc (eval-expresion rator env))
                      (args (eval-rands rands env)))
                  (if (procval? proc)
@@ -277,7 +280,7 @@
                 (cad-match-exp (id) (if (string? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (bool-match-exp (id) (if (boolean? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id) (list (direct-target (eval-expresion item env)))env)) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (array-match-exp (ids) (if (vector? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list (car ids)) (list (direct-target (car (vector->list(vector-copy (eval-expresion item env) 0 1))))) (extend-env (list (cadr ids)) (list (direct-target (car (vector->list (vector-copy (eval-expresion item env) 1 2))))) (extend-env (list (caddr ids)) (list (direct-target (vector-copy (eval-expresion item env) 2 (vector-length (eval-expresion item env))))) env)))) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
-                (empty-match-exp () (eval-expresion (car valuesItem) env) )
+                (empty-match-exp () (if (null? (eval-expresion item env ))(eval-expresion (car valuesItem) env) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 (default-match-exp () (eval-expresion (car valuesItem) env))
                 (list-match-exp (id1 id2) (if (list? (eval-expresion item env)) (eval-expresion (car valuesItem) (extend-env (list id1) (list (direct-target (car (eval-expresion item env)))) (extend-env (list id2) (list (direct-target (cdr  (eval-expresion item env)))) env))) (eval-match-exp item (cdr cases-regular-exp) (cdr valuesItem) env)))
                 )
